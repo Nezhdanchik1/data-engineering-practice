@@ -1,0 +1,60 @@
+{
+  "source": {
+    "type": "jsonl",
+    "path": "../examples/data/orders/*.jsonl"
+  },
+  "transforms": [
+    {
+      "type": "cast",
+      "schema": {
+        "order_id": "int",
+        "amount": "positive_amount",
+        "email": "email",
+        "phone": "phone",
+        "product_description": "strip_html"
+      }
+    },
+    {
+      "type": "date",
+      "column": "ordered_at",
+      "source_tz": "Asia/Tokyo"
+    },
+    {
+      "type": "dedupe",
+      "key": "order_id"
+    }
+  ],
+  "checks": [
+    {
+      "type": "not_null",
+      "column": "email"
+    },
+    {
+      "type": "unique",
+      "column": "order_id"
+    },
+    {
+      "type": "matches_pattern",
+      "column": "currency",
+      "regex": "[A-Z]{3}"
+    }
+  ],
+  "sink": {
+    "type": "jsonl",
+    "path": "../work/orders/output"
+  },
+  "partition": {
+    "timestamp": "ordered_at",
+    "source_tz": "Asia/Tokyo"
+  },
+  "incremental": {
+    "watermark": "../work/orders/watermark.json",
+    "report": "../work/orders/report.json",
+    "quarantine": "../work/orders/rejects.jsonl"
+  },
+  "retry": {
+    "max_attempts": 3,
+    "base": 0.05,
+    "jitter": 0.01
+  }
+}

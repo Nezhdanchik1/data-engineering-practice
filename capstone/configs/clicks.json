@@ -1,0 +1,36 @@
+{
+  "source": {
+    "type": "jsonl",
+    "path": "../examples/data/clicks/*.jsonl"
+  },
+  "transforms": [
+    {
+      "type": "date",
+      "column": "timestamp",
+      "source_tz": "Asia/Tokyo"
+    }
+  ],
+  "checks": [
+    {
+      "type": "not_null",
+      "column": "user_id"
+    },
+    {
+      "type": "not_null",
+      "column": "url"
+    }
+  ],
+  "sink": {
+    "type": "jsonl",
+    "path": "../work/clicks/output"
+  },
+  "partition": {
+    "timestamp": "timestamp",
+    "source_tz": "Asia/Tokyo"
+  },
+  "incremental": {
+    "watermark": "../work/clicks/watermark.json",
+    "report": "../work/clicks/report.json",
+    "quarantine": "../work/clicks/rejects.jsonl"
+  }
+}

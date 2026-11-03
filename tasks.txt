@@ -1,0 +1,471 @@
+Levels. Core tasks are required for everyone. Advanced tasks are needed for a top grade. Challenge tasks earn bonus credit.
+
+Rules for every task
+
+Use Python 3.11 or newer and the standard library only; pytest is the one allowed extra.
+Every task ships with tests: at least one for the normal case and one for each error case named in the task.
+Never let one bad record crash a whole run. Count it, report it, and move on.
+Open text files with an explicit encoding="utf-8", and store timestamps as UTC ISO 8601.
+Submission layout
+
+
+surname_track/
+    c1_1_auth_parser/
+        solution.py
+        test_solution.py
+        README.md        # how to run, design decisions, known limits
+    ...
+
+Ethics note for the cybersecurity track. All tasks use synthetic data and the documentation IP ranges 192.0.2.0/24, 198.51.100.0/24 and 203.0.113.0/24. Run your tools only on the provided data or on systems you own or are authorised to test.
+
+Part 1: Warm-up exercises
+Twenty short exercises, two per subtopic, come before the main task sets. Each takes 5–15 minutes, needs no provided data, and is the same for both tracks.
+
+Exceptions
+W1. Safe division. Write safe_divide(a, b) that returns a / b. For ZeroDivisionError print “Cannot divide by zero”, for TypeError print “Numbers only”, and return None in both cases. Expected: safe_divide(10, 2) gives 5.0, while safe_divide(1, 0) and safe_divide("1", 2) give None.
+
+W2. Ask until valid. Write read_age() that keeps calling input() until the user types a whole number from 0 to 120. Catch ValueError for text like “abc”, raise your own ValueError("age out of range") for numbers like 150, and use else to return the valid age.
+
+Dates
+W3. Days until a date. Ask for a date in DD.MM.YYYY format, parse it with strptime, and print how many days remain until it or how many days ago it was. A wrong format prints a friendly message instead of a traceback.
+
+W4. Birthday facts. For date(2000, 5, 17), print the weekday it fell on (Wednesday), the person’s age in full years today, and the date of their next birthday in DD Month YYYY format using strftime.
+
+Regular expressions
+W5. Find all numbers. Use re.findall to extract every integer and decimal from "Order 12 costs 45.50 USD, order 7 costs 3 USD". Expected: ['12', '45.50', '7', '3'].
+
+W6. Validate and reformat dates. Write a pattern with three groups that matches YYYY-MM-DD using fullmatch. Check that "2026-10-19" matches while "2026-1-19" and "x2026-10-19" do not. Then convert "2026-10-19" to "19.10.2026" with re.sub and group references.
+
+Files
+W7. Write and read back. Write five names to names.txt, one per line, using with and encoding="utf-8". Read the file back and print each name with its line number using enumerate, without the trailing newline.
+
+W8. Word counter. Write wc(path) that prints the number of lines, words and characters in a text file, plus its 3 most frequent words (collections.Counter is allowed). A missing file prints “File not found” instead of crashing.
+
+Classes and objects
+W9. Rectangle. Write a Rectangle class with width, height, area(), perimeter() and a __repr__. Expected: Rectangle(3, 4) has area 12 and perimeter 14, and printing it shows Rectangle(3, 4).
+
+W10. Counting instances. Write a Counter class with a class attribute created that counts how many counters exist, and an instance attribute value with increment() and reset(). Show that two counters change independently while Counter.created is 2.
+
+Encapsulation
+W11. Thermometer. Store the temperature in _celsius. Add a celsius property whose setter raises ValueErrorbelow −273.15, and a read-only fahrenheit property. Expected: setting 25 °C gives 77.0 °F, and setting −300 raises an error.
+
+W12. Protected balance. Write a BankAccount whose balance is a read-only property. deposit() and withdraw()reject non-positive amounts, and withdraw() rejects overdrafts. Show that account.balance = 1000 raises AttributeError.
+
+Inheritance
+W13. Animals. Write Animal with name, a speak() that returns "...", and a describe() that returns "Rex says Woof" by calling speak(). Subclasses Dog and Cat override only speak(). Loop over a mixed list and print each description.
+
+W14. Person and Student. Student(name, age, university) inherits from Person(name, age) and calls super().__init__. Override __str__ so it extends the parent’s text instead of repeating it. Print isinstance(s, Person) and issubclass(Student, Person).
+
+Abstract classes
+W15. Abstract shape. Define an abstract Shape with abstract area() and perimeter(), then Circle and Square. Show that Shape() raises TypeError, and that a subclass missing perimeter() cannot be instantiated either.
+
+W16. Exporters. Define an abstract Exporter with an abstract export(data: dict) -> str and a concrete save(path, data) that writes the result of export() to a file. Implement CsvExporter and JsonExporter, and save the same dict with both.
+
+Polymorphism
+W17. One loop, many shapes. Put several W15 shapes in a list and compute the total area with one loop and no isinstance. Then add a Triangle class and confirm that the loop needs no change.
+
+W18. Money with operators. Write a Money class with __add__, __eq__, __lt__ and __str__. Expected: Money(5) + Money(7) == Money(12) is True, sorted() orders a list of amounts, and sum(amounts, Money(0)) works.
+
+Liskov Substitution Principle
+W19. Spot the violation. Explain which LSP rule this code breaks and why let_fly(Penguin()) fails. Then redesign it with Bird and FlyingBird so every subclass keeps its parent’s promise.
+
+
+class Bird:
+    def fly(self):
+        return "flying"
+
+class Penguin(Bird):
+    def fly(self):
+        raise NotImplementedError("penguins can't fly")
+
+def let_fly(bird: Bird):
+    return bird.fly()
+
+W20. A tiny contract test. Write check_shape(s) that asserts area() returns a non-negative number and calling it twice gives the same result. Run it on every W15 shape. Then write a BadSquare whose area() returns a negative number and show that the check catches it.
+
+Part 2: Main tasks
+The main tasks are grouped into four task sets, two per track, followed by one capstone project per track.
+
+C1 · Cybersecurity: exceptions, dates, regex and files
+In this set students build the core of a log-analysis toolkit: parse authentication logs, detect brute-force attempts, extract indicators of compromise and monitor files for tampering.
+
+Sample auth.log for C1.1 and C1.2 (synthetic):
+
+
+Oct 19 08:15:02 srv01 sshd[2211]: Failed password for invalid user admin from 203.0.113.45 port 52144 ssh2
+Oct 19 08:15:04 srv01 sshd[2211]: Failed password for root from 203.0.113.45 port 52150 ssh2
+Oct 19 08:16:40 srv01 sshd[2290]: Accepted publickey for aru from 198.51.100.7 port 40112 ssh2
+Oct 19 08:17:01 srv01 CRON[2301]: pam_unix(cron:session): session opened for user root
+### corrupted line ###
+
+
+C1.1 Robust SSH log parser
+Level: Core · Topics: regex, exceptions, files · Time: about 60 min
+
+Write parse_auth_log(path) that reads the log line by line and returns a list of event dicts with timestamp, host, result (failed or accepted), user, invalid_user (bool), ip and port.
+
+Use one compiled pattern with named groups and fullmatch.
+Lines that are not SSH login events (such as CRON) are skipped silently.
+Lines that look like sshd but do not match raise a custom MalformedLogLine Catch it, count it and record the line number.
+A missing file raises a clear error message, not a raw traceback.
+Done when: the sample gives 3 events, 1 skipped line and 1 malformed line reported with its line number.
+
+
+C1.2 Brute-force detector with a time window
+Level: Core · Topics: dates, timedelta · Time: about 60 min
+
+Using the events from C1.1, raise an alert when one IP has 5 or more failed logins within any 60-second window.
+
+Syslog timestamps have no year. Accept the year as a parameter and handle the rollover: a log that runs from Dec 31 23:59:58 to Jan 1 00:00:03 must still count as one window.
+Convert all timestamps to UTC-aware datetime objects using a configurable source time zone (zoneinfo).
+Each alert contains the IP, the attempt count, the first and last timestamp in ISO 8601 and the targeted usernames.
+Done when: tests cover exactly 4 failures (no alert), 5 failures in 59 s (alert), 5 failures in 61 s (no alert) and the year rollover.
+
+
+C1.3 IOC extractor for threat reports
+Level: Core · Topics: regex, files, JSON · Time: about 75 min
+
+Extract indicators of compromise from a plain-text threat report and write them to iocs.json, grouped by type and deduplicated.
+
+Types: IPv4 addresses, domains, URLs, email addresses, and MD5, SHA-1 and SHA-256 hashes (32, 40 and 64 hex characters).
+Re-fang defanged indicators first: hxxp becomes http, [.] and (.) become ., [@] becomes @.
+Validate every IP candidate with the ipaddress module inside try / except ValueError, so 1.1.1 is rejected.
+A hash inside a longer hex string must not match: use word boundaries.
+Done when: a provided report with 12 known indicators and 5 decoys returns exactly the 12.
+
+
+C1.4 Password policy auditor
+Level: Advanced · Topics: regex, files · Time: about 45 min
+
+Read a file of candidate passwords and report which policy rules each one breaks.
+
+Rules: at least 12 characters, one uppercase, one lowercase, one digit and one symbol; no run of 3 or more identical characters (use a backreference); not in a provided common-passwords file (compare case-insensitively).
+The report names only the line number and the broken rules. It must never print or write the password itself.
+Done when: a test checks that no candidate password appears anywhere in the output.
+
+
+C1.5 File integrity monitor
+Level: Advanced · Topics: files, pathlib, exceptions, dates · Time: about 90 min
+
+Build a tool with two commands. baseline records the SHA-256 hash, size and modification time (UTC ISO 8601) of every file under a directory in baseline.json. check compares the current state with the baseline and reports added, removed and modified files.
+
+Hash in binary mode in 64 KiB chunks so large files never load fully into memory.
+Catch PermissionError and FileNotFoundError (a file deleted during the scan) per file. Report these files as unreadable and continue.
+Write the baseline atomically: write to a temporary file, then replace() it over the old one.
+Done when: tests use tmp_path to create, modify and delete files and check all three report categories.
+
+
+C1.6 TLS certificate expiry checker
+Level: Challenge · Topics: dates, regex, CSV · Time: about 60 min
+
+A CSV inventory lists hostnames and certificate notAfter values in mixed formats, such as Oct 19 12:00:00 2026 GMT and 2026-11-30T23:59:59Z. Compute the days remaining and classify each certificate as expired, critical (under 14 days), warning (under 30 days) or ok.
+
+Try each known format in turn and raise a custom UnknownDateFormat if none fits.
+Take “now” as a parameter so tests are deterministic.
+Write the results sorted by days remaining, most urgent first.
+C2 · Cybersecurity: classes, inheritance, polymorphism and LSP
+In this set students turn the C1 scripts into an extensible detection framework: typed events, pluggable log parsers, polymorphic detection rules and secrets that cannot leak.
+
+
+C2.1 Security event model
+Level: Core · Topics: dataclasses, enums, classmethods · Time: about 45 min
+
+Define a frozen dataclass SecurityEvent with timestamp (UTC-aware datetime), source_ip (an ipaddress.IPv4Address), user, action and severity, where severity is an Enum of LOW, MEDIUM, HIGH and CRITICAL.
+
+Validate in __post_init__: reject naive timestamps and empty actions with ValueError.
+Add order=True so a list of events sorts by time. Put timestamp first and exclude the other fields from comparison.
+Add a classmethod from_dict(d) that converts strings to the right types and wraps conversion errors in a custom EventParseError raised from the original.
+Done when: events sort chronologically, are hashable and can be stored in a set for deduplication.
+
+
+C2.2 Parser hierarchy with an abstract base class
+Level: Core · Topics: ABC, inheritance, template method · Time: about 90 min
+
+Create an abstract LogParser with an abstract method parse_line(line) -> SecurityEvent | None and a concrete method parse_file(path) that iterates over lines, calls parse_line, and counts malformed lines. This is the template method pattern.
+
+Implement SshAuthParser (reuse the C1.1 regex), WebAccessParser for the Apache combined log format, and JsonLineParser for JSON-lines logs.
+Register parsers by name with __init_subclass__, so for_format("ssh") returns the right instance without a chain of if statements.
+Show that LogParser() raises TypeError.
+Done when: a new parser can be added by writing one class, with no edits to existing code.
+
+
+C2.3 Polymorphic detection rules engine
+Level: Core · Topics: polymorphism, composition · Time: about 90 min
+
+Define an abstract DetectionRule with name, severity and evaluate(events) -> list[Alert], where Alert is a dataclass. Implement at least three rules:
+
+BruteForceRule: the C1.2 logic, with the threshold and window as constructor parameters.
+OffHoursLoginRule: a successful login outside 08:00–20:00 in a configurable time zone.
+NewSourceForUserRule: a user logs in from an IP never seen for them before.
+A DetectionEngine holds a list of rules (composition) and runs them all on a batch of events. The engine must never use isinstance or check rule names. One rule raising an exception must not stop the others; the engine logs the failure and continues.
+
+Done when: a test passes a deliberately broken rule and the engine still returns the other rules’ alerts.
+
+
+C2.4 A secret that cannot leak
+Level: Advanced · Topics: encapsulation, special methods · Time: about 45 min
+
+Write a Secret class that wraps an API key or password.
+
+str(), repr(), f-strings and logging all show Secret('********').
+The only way to read the value is an explicit reveal()
+__eq__ compares in constant time with compare_digest to avoid timing attacks.
+Make it hashable only by the hash of the value, never by the value itself.
+Done when: a test puts a Secret inside a dict, a list and an exception message and asserts the real value appears in none of their string forms.
+
+
+C2.5 Find and fix the LSP violations
+Level: Advanced · Topics: Liskov Substitution Principle, testing · Time: about 60 min
+
+The provided base class Notifier documents its contract: send(message: str) -> bool returns True on success, returns False on failure, and never raises. Three subclasses are provided:
+
+EmailNotifier follows the contract.
+SmsNotifier raises ValueError for messages over 160 characters.
+WebhookNotifier returns None when the endpoint is unreachable.
+Tasks:
+
+Write a contract test suite with mark.parametrize that runs the same tests against every subclass.
+For each failing subclass, name the LSP rule it breaks (a strengthened precondition, a weakened postcondition or a new exception).
+Fix the design so all subclasses pass, for example by having SmsNotifier split or truncate long messages. Explain your choice in the README.
+
+C2.6 Alert sinks with a Protocol
+Level: Challenge · Topics: typing.Protocol, composition · Time: about 60 min
+
+Define an AlertSink protocol with send(alert: Alert) -> None. Implement ConsoleSink, JsonLinesSink and CsvSink without inheriting from anything. Then write MultiSink, which holds several sinks and forwards each alert to all of them.
+
+Done when: mypy --strict accepts the code, and a test checks that one failing sink does not stop delivery to the others.
+
+D1 · Data Engineering: exceptions, dates, regex and files
+In this set students build the ingestion layer of a pipeline: validate messy files, normalise dates and text, load incrementally and survive unreliable sources.
+
+Sample orders.csv for D1.1 to D1.3. Every row after the first has a deliberate problem:
+
+
+order_id,customer_email,phone,amount,currency,order_date
+1001,aru@example.com,+7 701 123 4567,120.50,USD,2026-10-01
+1002,dana@example,8(701)1234568,99.00,USD,01/10/2026
+1003,timur@example.com,7011234569,abc,EUR,2026-10-02T14:30:00+02:00
+1004,,+7-701-123-4570,45.00,KZT,2026-13-01
+1001,aru@example.com,+7 701 123 4567,120.50,USD,2026-10-01
+
+
+D1.1 Resilient CSV ingestion with a quarantine
+Level: Core · Topics: exceptions, files, CSV · Time: about 75 min
+
+Write ingest(path) that validates each row and writes good rows to clean.csv and bad rows to rejects.csv, with an extra reason column.
+
+Define ValidationError with subclasses MissingField, InvalidAmount and DuplicateKey, and catch them per row.
+Use Decimal for amounts, not float, and reject negative values.
+If the file is not valid UTF-8, catch UnicodeDecodeError and retry once with a configurable fallback encoding such as cp1251.
+Print a run summary: rows read, accepted and rejected, and the rejections grouped by reason.
+Done when: the sample produces 2 clean rows (1001 and 1002) and 3 rejects (bad amount, missing email, duplicate key), each with the correct reason. Row 1002’s email and date problems are handled in D1.2 and D1.3.
+
+
+D1.2 Date normalisation and partition keys
+Level: Core · Topics: datetime, zoneinfo, strptime · Time: about 60 min
+
+Write normalise_ts(value, source_tz, dayfirst=True) that converts any of the sample date formats to a UTC ISO 8601 string.
+
+Naive values are interpreted in the source time zone; values with an offset keep their offset.
+The ambiguous 01/10/2026 follows the dayfirst Document why ambiguity needs an explicit decision.
+Impossible dates such as 2026-13-01 raise InvalidDate with the original value in the message.
+Add partition_path(ts) that returns a path like year=2026/month=10/day=01 and writes each record to its partition folder.
+Done when: a test shows that 23:30 local time on 31 October in Asia/Tokyo lands in the 31 October UTC partition, while 01:30 local time on 1 November falls back into 31 October UTC.
+
+
+D1.3 Text cleaning and PII masking with regex
+Level: Core · Topics: regex, sub with functions · Time: about 60 min
+
+Normalise every phone number in the sample to +7-701-123-4567. Strip non-digits with sub, convert a leading 8 to 7, then regroup with a pattern.
+Validate emails with a pragmatic pattern and fullmatch.
+Mask PII for an analytics export: aru@example.com becomes a***@example.com, and phones keep only the last 4 digits. Use sub with a replacement function.
+Strip HTML tags from a provided product description column. Write in the README why this is acceptable here but not as a general HTML parser.
+
+D1.4 Incremental loader with a watermark
+Level: Advanced · Topics: files, pathlib, JSON, regex, dates · Time: about 90 min
+
+A folder receives one file per day, such as events_2026-10-17.jsonl. Process only files newer than the last successful run.
+
+Extract the date from each filename with a regex. Ignore files that do not match, and log them.
+Store the watermark in json. Update it atomically, and only after the file has been fully processed.
+Read JSON lines one at a time. A line that raises JSONDecodeError is logged with its file and line number, then skipped.
+Running the loader twice in a row processes nothing the second time; the load is idempotent.
+Done when: tests cover a first run, a re-run, a newly arrived file and a crash in the middle of a file that leaves the watermark unchanged.
+
+
+D1.5 Retry with exponential backoff
+Level: Advanced · Topics: exceptions, timedelta · Time: about 60 min
+
+The provided flaky_source() randomly raises ConnectionError or TimeoutError, and sometimes ValueError for bad requests. Write a retry decorator.
+
+Retry only transient errors (ConnectionError, TimeoutError). Re-raise ValueError
+Wait base * 2 ** attempt seconds plus random jitter, up to a maximum number of attempts.
+When attempts run out, raise RetryExhausted chained from the last error, with the attempt count and the total time elapsed.
+Make the sleep function injectable so tests run instantly.
+
+D1.6 Clickstream sessionisation
+Level: Challenge · Topics: dates, files, sorting · Time: about 90 min
+
+Group click events (user_id, timestamp, url) into sessions. A new session starts after 30 minutes of inactivity. Output one row per session with the user, start, end, duration in seconds and page count.
+
+Events may arrive out of order and in mixed time zones: normalise to UTC and sort per user first.
+Handle sessions that cross midnight correctly.
+D2 · Data Engineering: classes, inheritance, polymorphism and LSP
+In this set students build a small, extensible ETL framework: typed records, interchangeable sources and sinks, chainable transforms and pluggable data-quality checks.
+
+
+D2.1 Typed record model
+Level: Core · Topics: dataclasses, classmethods, validation · Time: about 45 min
+
+Define a frozen dataclass Order with order_id: int, email: str, amount: Decimal, currency: str and ordered_at: datetime (UTC-aware).
+
+Validate in __post_init__: a positive amount, a three-letter uppercase currency and an aware timestamp.
+Add from_row(row: dict) as a classmethod that parses strings (reuse your D1.2 date function) and to_row()that serialises back to strings.
+A round trip from_row(o.to_row()) == o must hold for every valid order.
+
+D2.2 Source and sink hierarchy
+Level: Core · Topics: ABC, inheritance, context managers · Time: about 90 min
+
+Create abstract base classes Source with read() -> Iterator[dict] and Sink with write(records: Iterable[dict]) -> int, where write returns the number of records written.
+
+Implement CsvSource, JsonLinesSource and InMemorySource (for tests), plus CsvSink, JsonLinesSink and InMemorySink.
+Give the base classes __enter__ and __exit__ so every connector works in a with block, and subclasses only implement open() and close().
+Sources must stream: reading a 1 GB file must not load it into memory.
+Done when: any source can be paired with any sink in a test matrix of 3 × 3 combinations.
+
+
+D2.3 Chainable transforms with operator overloading
+Level: Core · Topics: polymorphism, special methods, composition · Time: about 90 min
+
+Define an abstract Transform with apply(record) -> dict | None, where None means drop the record. Implement:
+
+Filter(predicate), Rename(mapping), Cast(schema) and Deduplicate(key). The last one keeps state between records.
+A Pipeline that composes a source, a list of transforms and a sink.
+__or__ on Transform and Pipeline, so a pipeline reads naturally:
+
+pipeline = CsvSource("orders.csv") | Cast(schema) | Deduplicate("order_id") | Filter(is_paid)
+stats = pipeline.into(JsonLinesSink("orders.jsonl"))
+
+A transform that raises on one record sends that record to a reject list with the exception message and does not stop the run.
+
+
+D2.4 Pluggable data-quality checks
+Level: Advanced · Topics: ABC, polymorphism, dates · Time: about 75 min
+
+Define an abstract Check with run(records) -> CheckResult, where CheckResult is a dataclass with name, passed, failed_count and sample_failures (up to 5).
+
+Implement NotNull(column), Unique(column), InRange(column, low, high), MatchesPattern(column, regex) and Freshness(column, max_age: timedelta).
+A QualitySuite runs all checks polymorphically and writes a JSON report with a UTC run timestamp.
+Add a severity to each check: an error fails the run, a warning only reports.
+
+D2.5 Find and fix the LSP violations
+Level: Advanced · Topics: Liskov Substitution Principle, testing · Time: about 60 min
+
+The provided Sink contract says write(records) accepts any iterable, including an empty one, and returns the number of records written. Three provided subclasses break it:
+
+BatchSink raises ValueError when given fewer than 100 records.
+DryRunSink returns None instead of a count.
+WarehouseSink raises NotImplementedError from flush(), a method the base class promises.
+Tasks:
+
+Write a contract test suite parametrised over every Sink subclass, including your own from D2.2.
+For each failure, name the broken LSP rule.
+Redesign so every subclass passes. For example, BatchSink can buffer records and flush on close(). Explain the trade-offs in the README.
+
+D2.6 Config-driven pipelines with a plugin registry
+Level: Challenge · Topics: __init_subclass__, classmethods, JSON · Time: about 90 min
+
+Register every source, sink, transform and check by a short name with __init_subclass__. Build a whole pipeline from a JSON config file, with no if chains:
+
+
+{
+  "source": {"type": "csv", "path": "orders.csv"},
+  "transforms": [{"type": "cast", "schema": "orders"}, {"type": "dedupe", "key": "order_id"}],
+  "checks": [{"type": "not_null", "column": "email"}],
+  "sink": {"type": "jsonl", "path": "out/orders.jsonl"}
+}
+
+An unknown type or a missing parameter raises a ConfigError that names the exact config path, such as transforms[1].key.
+
+Capstone projects
+Each track’s capstone joins its C or D tasks into one working command-line tool. Allow two weeks, and work alone or in pairs.
+
+
+Cybersecurity capstone: a mini SIEM
+Build minisiem, which collects logs in several formats from a folder, normalises them into SecurityEvent objects, runs detection rules and delivers alerts.
+
+It must:
+
+☐ Discover log files with pathlib and pick a parser per file through the C2.2 registry.
+☐ Process new data incrementally, keeping a watermark per file and surviving restarts.
+☐ Run at least four detection rules, with thresholds read from json.
+☐ Send alerts to at least two sinks through MultiSink.
+☐ Keep secrets such as a webhook token in Secret objects, and never log them.
+☐ Write a daily summary in JSON: events per source, alerts per rule and severity, and malformed lines per file.
+☐ Include contract tests for parsers, rules and sinks that every subclass passes.
+Provided: a folder of synthetic logs covering two days that hides three planted attack scenarios: an SSH brute force, a night-time admin login and a credential reused from a new IP. Students must detect all three.
+
+
+Data Engineering capstone: a mini ETL framework
+Build minietl, which runs config-driven pipelines from sources through transforms and quality checks to sinks.
+
+It must:
+
+☐ Build pipelines from JSON configs through the D2.6 registry.
+☐ Load incrementally with a watermark, and stay idempotent when re-run.
+☐ Quarantine bad records with a reason, and never stop a run because of one record.
+☐ Retry transient source failures with the D1.5 backoff decorator.
+☐ Write output partitioned by UTC date (year=/month=/day=).
+☐ Run a quality suite after each load, where an error-level failure marks the run as failed.
+☐ Write a run report in JSON: start and end times in UTC, duration, rows in, out and rejected per step, and check results.
+☐ Include contract tests for every source, sink, transform and check.
+Provided: a week of synthetic order and clickstream files, with dirty rows, mixed time zones, one corrupt file and one late-arriving file.
+
+Deliverables for both capstones: the code, tests, a README with run instructions, and a one-page design note. The note explains each inheritance relation, each use of composition, and how the design satisfies the Liskov Substitution Principle.
+
+Assessment
+Both tracks use the same rubric, so grades are comparable across groups. Each task set is graded out of 100. The capstone counts as two task sets.
+
+Criterion
+
+Weight
+
+Full marks when
+
+Correctness
+
+35%
+
+All “Done when” conditions pass, and the hidden test cases pass too
+
+Robustness and error handling
+
+20%
+
+Bad input is counted and reported, never crashes the run; exceptions are specific and chained
+
+Design (OOP sets and capstone)
+
+20%
+
+Abstractions are clear, composition is preferred where it fits, there are no isinstance chains, and subclasses pass contract tests
+
+Tests
+
+15%
+
+Normal, edge and error cases are covered; tests are deterministic (injected time and sleep, tmp_path)
+
+Code quality and README
+
+10%
+
+Code is readable and typed, and the README explains design decisions and known limits
+
+Grade bands. Core tasks alone can earn up to 75. Advanced tasks unlock the range from 75 to 100. Each Challenge task adds up to 5 bonus points, capped at 100.
+
+Grading notes
+
+Run every submission against hidden tests with extra malformed lines, time-zone edge cases (DST changes, year rollover) and empty inputs.
+In the C2.5 and D2.5 LSP tasks, credit the explanation of which rule is broken as much as the fix itself.
+For the cybersecurity track, deduct marks if a secret or password appears in any output, log or exception message, even if the task otherwise works.

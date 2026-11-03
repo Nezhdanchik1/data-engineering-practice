@@ -1,0 +1,10 @@
+.tools/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+capstone/work/
+.env
+.env.*
+!.env.example

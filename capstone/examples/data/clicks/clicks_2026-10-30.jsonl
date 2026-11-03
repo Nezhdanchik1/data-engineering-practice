@@ -1,0 +1,4 @@
+{"user_id": "aru", "timestamp": "2026-10-30T00:10:00Z", "url": "/checkout"}
+{"user_id": "aru", "timestamp": "2026-10-30T01:50:00+02:00", "url": "/"}
+{"user_id": "dana", "timestamp": "2026-10-30T23:30:00", "url": "/product"}
+{"user_id": "aru", "timestamp": "bad", "url": "/"}
